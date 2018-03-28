@@ -191,7 +191,7 @@ class MerkleTree:
 		
 		leaf_start = int(pow(2,self.height)-1)			# index where leaves start
 		leaf_offset = leaf_start+i						# index of leaf containing hash of file i
-		print "Setting new value for index", leaf_offset
+		#print "Setting new value for index", leaf_offset
 		self.tree[leaf_offset] = hash.hexdigest()
 		
 		for level in range(self.height, 1, -1):
@@ -204,20 +204,21 @@ class MerkleTree:
 			temp1 = pow(2, level) - 1
 			temp2 = pow(2, level+1) - 1
 			parent_index = temp1 + (leaf_offset - temp2)/2
-			print "Setting new value for index", parent_index
+			#print "Setting new value for index", parent_index
 			self.tree[parent_index] = hash.hexdigest()
 			leaf_offset = parent_index
 		
 		hash = hashlib.sha256(self.tree[1] + self.tree[2])
-		print "Setting new value for root"
+		#print "Setting new value for root"
 		self.tree[0] = hash.hexdigest()
 		self.root = self.tree[0]
 		
-	def check_integrity(self, i, siblings_list):
+	def check_integrity(self, i, file, siblings_list):
 		# Check that self.root matches root computed from the returned path
 		# valid = True if integrity is verified
 		
-		file = self.file_list[i]
+		if(file != self.file_list[i]): return False
+		
 		hash = hashlib.sha256(file)
 		for i in range(0, len(siblings_list)):
 			if(siblings_list[i][0] % 2 == 0):									# sibling is even, then it is right term
