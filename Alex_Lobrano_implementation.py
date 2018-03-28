@@ -1,6 +1,8 @@
 import math
 import random
 import fractions
+import hashlib
+import string
 
 randnum = random.SystemRandom()
 ############## Problem 1 a ##############
@@ -11,7 +13,7 @@ def generate_prime(n):
 	# use isPrimeMR() to test that the generated number is prime
 	
 	for i in xrange(3*pow(n,2)):
-		p = random.getrandbits(n-1)			# generate N-1 random bits
+		p = randnum.getrandbits(n-1)			# generate N-1 random bits
 		p = format(p, 'b')					# convert to binary string
 		for i in range(n - len(p) - 1):
 			p = "0" + p						# add missing zeroes
@@ -75,6 +77,12 @@ def modinv(a, b):
     return y0
 	#return b, y0, x0 #(g,x,y)
 	
+def generate_string(size):
+	temp = ''
+	for i in range(size):
+		temp += random.choice(string.ascii_letters + string.digits)
+	return temp
+	
 ############## Problem 1 b ##############
 class RSA:
 	# initialize RSA, generate e, d
@@ -112,48 +120,45 @@ class RSA:
 		x = pow(y, self.d, self.rsamodulus)
 		return x
 
-############## Problem 1 c ##############
-class ISO_RSA:
-	# initialize RSA, generate e, d, ISO RSA implementation
-	def __init__(self):
-		pass
-
-	def gen(self):
-		# security parameter for sauthenticated encryption 
-		self.k =128
-	
-		# security parameter for trapdoor
-		self.n = 1024
-		
-		# Primes p and q
-		self.p = 0
-		self.q = 0
-		
-		# RSA modulus N = pq
-		self.rsamodulus = 0
-		
-		# Public key e
-		self.e = 0
-		
-		# Secret key d
-		self.d = 0
-	
-	def enc(self, m):
-		return (y,c)
-	
-	def dec(self, y, c):
-		return m
-
 ############## Problem 2 ##############
+class Node:
+    def __init__(self,key):
+		self.rChild = None
+		self.lChild = None
+		self.p = None
+		self.data = key
+
 class MerkleTree:
 	def __init__(self):
 		pass
 
 	# Number of files
-		self.n = 0
+		self.n = 32
 	
 	def create_tree(self, file_list):
-		self.root = 0
+		self.file_list = file_list						# save files
+		height = int(math.log(len(file_list))/math.log(2))	# take log_2 of number of files to see how many levels (not including root)
+		treesize = int(pow(2,height+1)-1)				# number of nodes total, including leaves and root
+		self.tree = [None] * treesize
+		
+		leaf_start = int(pow(2,height)-1)
+		for i in range(leaf_start, leaf_start+len(file_list)):					# create leaves as nodes for all files
+			hash = hashlib.sha256(self.file_list[i-leaf_start])
+			self.tree[i] = hash.hexdigest()
+		
+		for level in range(height, 0, -1):
+			for level_offset in range(pow(2,level)-1, pow(2,level+1)-1, 2):
+				temp1 = pow(2, level) - 1
+				temp2 = pow(2, level+1) - 1
+				parent = temp1 + (level_offset - temp2)/2
+				data = self.tree[level_offset] + self.tree[level_offset+1]
+				hash = hashlib.sha256(data)
+				self.tree[parent] = hash.hexdigest()
+		
+		data = self.tree[1] + self.tree[2]
+		hash = hashlib.sha256(data)
+		self.tree[0] = hash.hexdigest()
+		self.root = self.tree[0]
 
 	def read_file(self, i):
 		pass
@@ -172,42 +177,3 @@ class MerkleTree:
 		# valid = True if integrity is verified
 		
 		return valid
-		
-def is_probable_prime(n):
-    assert n >= 2
-    # special case 2
-    if n == 2:
-        return True
-    # ensure n is odd
-    if n % 2 == 0:
-        return False
-    # write n-1 as 2**s * d
-    # repeatedly try to divide n-1 by 2
-    s = 0
-    d = n-1
-    while True:
-        quotient, remainder = divmod(d, 2)
-        if remainder == 1:
-            break
-        s += 1
-        d = quotient
-	#print "S:", s, "D:", d
-    assert(2**s * d == n-1)
- 
-    # test the base a to see whether it is a witness for the compositeness of n
-    def try_composite(a):
-		#print "Testing A:", a, "D:", d, "N:", n
-		if pow(a, d, n) == 1:
-			return False
-		for i in range(s):
-			#print "Testing A:", a, "Exp:", 2**i * d, "N:", n
-			if pow(a, 2**i * d, n) == n-1:
-				return False
-		return True # n is definitely composite
- 
-    for i in range(10):
-		a = random.randrange(2, n)
-		if try_composite(a):
-			return False
- 
-    return True # no base tested showed n as composite
