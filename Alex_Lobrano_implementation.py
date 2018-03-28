@@ -1,37 +1,37 @@
 import math
 import random
+import fractions
 
 randnum = random.SystemRandom()
 ############## Problem 1 a ##############
 
 # Generate prime number of size n bits
-def generate_prime(n, t):
+def generate_prime(n):
 	# sample uniform number of n bits
 	# use isPrimeMR() to test that the generated number is prime
 	
-	p = random.getrandbits(n-1)			# generate N-1 random bits
-	p = format(p, 'b')					# convert to binary string
-	for i in range(n - len(p) - 1):
-		p = "0" + p						# add missing zeroes
-	p = "1" + p							# add 1 to front to ensure N bits
-	p = int(p, 2)						# convert back to int
-	return p
+	for i in xrange(3*pow(n,2)):
+		p = random.getrandbits(n-1)			# generate N-1 random bits
+		p = format(p, 'b')					# convert to binary string
+		for i in range(n - len(p) - 1):
+			p = "0" + p						# add missing zeroes
+		p = "1" + p							# add 1 to front to ensure N bits
+		p = int(p, 2)						# convert back to int
+		if(isPrimeMR(p)): return p
 
 #get number p, test if it's prime using Miller-Rabin
-def isPrimeMR(p, t):
+def isPrimeMR(p):
 	
 	if(p % 2 == 0): return False
-	if(isPerfectPower(p)): return False
+	#if(isPerfectPower(p)): return False
 	u = p - 1
 	u = u/2
 	r = 1
 	while(u % 2 == 0):
 		u = u/2
 		r += 1
-	#print "U:", u, "R:", r
-	for j in range(1, t):
+	for j in range(10):
 		a = randnum.randint(2, p-1)
-		#print "A value:", a
 		if(foundWitness(a,u,r,p)):
 			return False
 	return True
@@ -52,14 +52,9 @@ def isPerfectPower(p):
 	
 def foundWitness(a, u, r, p):
 	if((pow(a,u,p) != 1) and (pow(a,u,p) != p-1)):
-		# if(r == 1):
-			# #print "Witness:", a
-			# return True
 		for i in range(1, r):
-			#print "Testing value i", i, "and exponent", 2**i*u
 			if(pow(a,2**i*u,p) == p-1):
 				return False
-		#print "Witness:", a
 		return True
 	return False
 
@@ -70,6 +65,16 @@ def isPrimeNaive(p):
 			return False
 	return True
 
+# returns x such that a*x + b*y = g
+def modinv(a, b):
+    x0, x1, y0, y1 = 1, 0, 0, 1
+    while a != 0:
+        q, b, a = b // a, a, b % a
+        x0, x1 = x1, x0 - q * x1
+        y0, y1 = y1, y0 - q * y1
+    return y0
+	#return b, y0, x0 #(g,x,y)
+	
 ############## Problem 1 b ##############
 class RSA:
 	# initialize RSA, generate e, d
@@ -82,22 +87,29 @@ class RSA:
 		self.n = 1024
 		
 		# Primes p and q
-		self.p = 0
-		self.q = 0
+		self.p = generate_prime(self.n)
+		self.q = generate_prime(self.n)
 		
 		# RSA modulus N = pq
-		self.rsamodulus = 0
+		self.rsamodulus = self.p * self.q
+		
+		# Phi(N)
+		self.phi = (self.p - 1)*(self.q - 1)
 		
 		# Public key e
-		self.e = 0
+		self.e = randnum.randint(1, self.phi - 1)			# generate integer e between 1 and phi(N)-1
+		while(fractions.gcd(self.e, self.phi) != 1):		# check if e is relatively prime to phi(N)
+			self.e = randnum.randint(1, self.phi - 1)			# if not, generate new e and try again
 		
 		# Secret key d
-		self.d = 0
+		self.d = modinv(self.e, self.phi) + self.phi
 	
 	def trapdoor(self, x):
+		y = pow(x, self.e, self.rsamodulus)
 		return y
 	
 	def inverse(self, y):
+		x = pow(y, self.d, self.rsamodulus)
 		return x
 
 ############## Problem 1 c ##############
