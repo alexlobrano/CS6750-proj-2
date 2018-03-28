@@ -121,13 +121,6 @@ class RSA:
 		return x
 
 ############## Problem 2 ##############
-class Node:
-    def __init__(self,key):
-		self.rChild = None
-		self.lChild = None
-		self.p = None
-		self.data = key
-
 class MerkleTree:
 	def __init__(self):
 		pass
@@ -136,32 +129,55 @@ class MerkleTree:
 		self.n = 32
 	
 	def create_tree(self, file_list):
-		self.file_list = file_list						# save files
-		height = int(math.log(len(file_list))/math.log(2))	# take log_2 of number of files to see how many levels (not including root)
-		treesize = int(pow(2,height+1)-1)				# number of nodes total, including leaves and root
+		self.file_list = file_list												# save files
+		self.height = int(math.log(len(file_list))/math.log(2))					# number of levels in tree
+		treesize = int(pow(2,self.height+1)-1)									# number of nodes in tree, including leaves and root
 		self.tree = [None] * treesize
 		
-		leaf_start = int(pow(2,height)-1)
+		leaf_start = int(pow(2,self.height)-1)
 		for i in range(leaf_start, leaf_start+len(file_list)):					# create leaves as nodes for all files
 			hash = hashlib.sha256(self.file_list[i-leaf_start])
 			self.tree[i] = hash.hexdigest()
 		
-		for level in range(height, 0, -1):
+		for level in range(self.height, 0, -1):
 			for level_offset in range(pow(2,level)-1, pow(2,level+1)-1, 2):
 				temp1 = pow(2, level) - 1
 				temp2 = pow(2, level+1) - 1
-				parent = temp1 + (level_offset - temp2)/2
+				parent_index = temp1 + (level_offset - temp2)/2
 				data = self.tree[level_offset] + self.tree[level_offset+1]
 				hash = hashlib.sha256(data)
-				self.tree[parent] = hash.hexdigest()
+				self.tree[parent_index] = hash.hexdigest()
 		
-		data = self.tree[1] + self.tree[2]
-		hash = hashlib.sha256(data)
+		hash = hashlib.sha256(self.tree[1] + self.tree[2])
 		self.tree[0] = hash.hexdigest()
 		self.root = self.tree[0]
 
 	def read_file(self, i):
 		pass
+		
+		file = self.file_list[i]						# file i
+		
+		leaf_start = int(pow(2,self.height)-1)			# index where leaves start
+		leaf_offset = leaf_start+i						# index of leaf containing hash of file i
+		
+		if(leaf_offset % 2 == 0): 						# get index of sibling for leaf
+			sibling_index = leaf_offset - 1
+		else:
+			sibling_index = leaf_offset + 1
+		#print "Adding index to sibling list", sibling_index
+		siblings_list = [ [sibling_index,self.tree[sibling_index]] ]			# add sibling to sibling list
+		
+		for level in range(self.height, 1, -1):
+			temp1 = pow(2, level) - 1
+			temp2 = pow(2, level+1) - 1
+			parent_index = temp1 + (leaf_offset - temp2)/2
+			if(parent_index % 2 == 0):
+				uncle_index = parent_index - 1
+			else:
+				uncle_index = parent_index + 1
+			#print "Adding index to sibling list", uncle_index
+			siblings_list.append([uncle_index,self.tree[uncle_index]])
+			leaf_offset = parent_index
 		
 		# return file from Merkle Tree
 		# Print siblings_list
@@ -169,11 +185,45 @@ class MerkleTree:
 		
 	def write_file(self, i, file):
 		pass
-		# Update the root
-		#self.root = NEW_ROOT
 		
-	def check_integrity(i,file,siblings_list):
+		self.file_list[i] = file
+		hash = hashlib.sha256(file)
+		
+		leaf_start = int(pow(2,self.height)-1)			# index where leaves start
+		leaf_offset = leaf_start+i						# index of leaf containing hash of file i
+		print "Setting new value for index", leaf_offset
+		self.tree[leaf_offset] = hash.hexdigest()
+		
+		for level in range(self.height, 1, -1):
+			if(leaf_offset % 2 == 0): 						# get index of sibling for leaf
+				sibling_index = leaf_offset - 1
+				hash = hashlib.sha256(self.tree[sibling_index] + self.tree[leaf_offset])
+			else:
+				sibling_index = leaf_offset + 1
+				hash = hashlib.sha256(self.tree[leaf_offset] + self.tree[sibling_index])
+			temp1 = pow(2, level) - 1
+			temp2 = pow(2, level+1) - 1
+			parent_index = temp1 + (leaf_offset - temp2)/2
+			print "Setting new value for index", parent_index
+			self.tree[parent_index] = hash.hexdigest()
+			leaf_offset = parent_index
+		
+		hash = hashlib.sha256(self.tree[1] + self.tree[2])
+		print "Setting new value for root"
+		self.tree[0] = hash.hexdigest()
+		self.root = self.tree[0]
+		
+	def check_integrity(self, i, siblings_list):
 		# Check that self.root matches root computed from the returned path
 		# valid = True if integrity is verified
 		
-		return valid
+		file = self.file_list[i]
+		hash = hashlib.sha256(file)
+		for i in range(0, len(siblings_list)):
+			if(siblings_list[i][0] % 2 == 0):									# sibling is even, then it is right term
+				hash = hashlib.sha256(hash.hexdigest()+siblings_list[i][1])
+			else:																# sibling is odd, so it is left term
+				hash = hashlib.sha256(siblings_list[i][1]+hash.hexdigest())
+		
+		if(hash.hexdigest() == self.root): return True
+		else: return False
