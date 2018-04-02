@@ -21,9 +21,9 @@ rsa.gen(filename)
 for i in range(10):
 
 	# Generate random x in Z_N^*
-	x = randnum.randint(1, rsa.rsamodulus - 1)			# generate integer x between 1 and N-1
-	while(fractions.gcd(x, rsa.rsamodulus) != 1):		# check if x is relatively prime to N
-		x = randnum.randint(1, rsa.rsamodulus - 1)			# if not, generate new x and try again
+	x = randnum.randint(1, rsa.rsamodulus - 1)				# Generate integer x between 1 and N-1
+	while(fractions.gcd(x, rsa.rsamodulus) != 1):			# Check if x is relatively prime to N
+		x = randnum.randint(1, rsa.rsamodulus - 1)			# If not relatively prime, generate new x and try again
 	y = rsa.trapdoor(x)
 	assert rsa.inverse(y) == x
 	print "Pair", i, ":(", x, ",", y, ")"

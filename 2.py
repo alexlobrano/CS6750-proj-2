@@ -21,7 +21,7 @@ root = mt.create_tree(file_list, filename)
 for i in range(5):
 	pos = randnum.randint(0, number_of_files - 1)
 	file, siblings_list =  mt.read_file(pos, filename)
-	valid = mt.check_integrity(pos,file,siblings_list,root,filename) 
+	valid = mt.check_integrity(pos, file, siblings_list, root, filename) 
 	assert (file == file_list[pos] and valid == True)
 
 # read 5 invalid files
@@ -29,16 +29,16 @@ for i in range(5):
 	pos = randnum.randint(0, number_of_files - 1)
 	file, siblings_list =  mt.read_file(pos, filename)
 	file = generate_string(32)
-	valid = mt.check_integrity(pos,file,siblings_list,root,filename) 
+	valid = mt.check_integrity(pos, file, siblings_list, root, filename) 
 	assert (valid == False)
 
 # write 5 files
 for i in range(5):
 	pos = randnum.randint(0, number_of_files - 1)
 	new_file = generate_string(32)
-	root = mt.write_file(pos,new_file,filename)
+	root = mt.write_file(pos, new_file, filename)
 
 	file, siblings_list =  mt.read_file(pos, filename)
-	valid = mt.check_integrity(pos,file,siblings_list,root,filename) 
+	valid = mt.check_integrity(pos, file, siblings_list, root, filename) 
 	assert (file == new_file and valid == True)
 
