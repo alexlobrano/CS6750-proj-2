@@ -142,7 +142,7 @@ class MerkleTree:
 		self.file_list = file_list												# Save the files themselves
 		self.height = int(math.log(len(file_list))/math.log(2))					# Height is the number of levels in tree
 		treesize = int(pow(2,self.height+1)-1)									# Treesize is the number of nodes in tree, including leaves and root
-		print "Creating tree with ", treesize, "nodes"
+		print "Creating tree with", treesize, "nodes"
 		self.tree = [None] * treesize											# Create the tree with treesize number of nodes
 		
 		leaf_start = int(pow(2,self.height)-1)									# Calculate which node is the first leaf
