@@ -10,8 +10,12 @@
 from Alex_Lobrano_implementation import *
 
 #test for 10 small numbers, size n = 20 bits.
+
+filename = time.strftime("%Y%m%d-%H%M%S")
+sys.stdout = open(filename + '.txt', 'w')
+
 n = 20
 
 for i in range(10):
-	p = generate_prime(n)
-	assert isPrimeNaive(p) == True
+	p = generate_prime(n, filename)
+	assert isPrimeNaive(p, filename) == True

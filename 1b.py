@@ -12,8 +12,11 @@ from Alex_Lobrano_implementation import *
 
 # test RSA, do it 10 times
 
+filename = time.strftime("%Y%m%d-%H%M%S")
+sys.stdout = open(filename + '.txt', 'w')
+
 rsa = RSA()
-rsa.gen()
+rsa.gen(filename)
 
 for i in range(10):
 
@@ -23,3 +26,4 @@ for i in range(10):
 		x = randnum.randint(1, rsa.rsamodulus - 1)			# if not, generate new x and try again
 	y = rsa.trapdoor(x)
 	assert rsa.inverse(y) == x
+	print "Pair", i, ":(", x, ",", y, ")"

@@ -3,14 +3,13 @@ import random
 import fractions
 import hashlib
 import string
+import time
+import sys
 
 randnum = random.SystemRandom()
-############## Problem 1 a ##############
 
 # Generate prime number of size n bits
-def generate_prime(n):
-	# sample uniform number of n bits
-	# use isPrimeMR() to test that the generated number is prime
+def generate_prime(n, filename):
 	
 	for i in xrange(3*pow(n,2)):
 		p = randnum.getrandbits(n-1)			# generate N-1 random bits
@@ -19,22 +18,28 @@ def generate_prime(n):
 			p = "0" + p						# add missing zeroes
 		p = "1" + p							# add 1 to front to ensure N bits
 		p = int(p, 2)						# convert back to int
-		if(isPrimeMR(p)): return p
+		if(isPrimeMR(p, filename)): 
+			print p, "is prime\n"
+			return p
 
 #get number p, test if it's prime using Miller-Rabin
-def isPrimeMR(p):
+def isPrimeMR(p, filename):
 	
-	if(p % 2 == 0): return False
+	print "Testing", p, "for primality"
+	if(p % 2 == 0): 
+		print p, "is even"
+		return False
 	#if(isPerfectPower(p)): return False
 	u = p - 1
-	u = u/2
+	u = u / 2
 	r = 1
 	while(u % 2 == 0):
-		u = u/2
+		u = u / 2
 		r += 1
 	for j in range(10):
 		a = randnum.randint(2, p-1)
 		if(foundWitness(a,u,r,p)):
+			print "Witness", a, "found for", p
 			return False
 	return True
 
@@ -61,10 +66,13 @@ def foundWitness(a, u, r, p):
 	return False
 
 # primality test using the naive approach
-def isPrimeNaive(p):
+def isPrimeNaive(p, filename):
+	print "Testing", p, "using naive approach"
 	for i in range(2, int(math.sqrt(p))+2):
 		if p % i == 0:
+			print p, "is divisble by", i
 			return False
+	print p, "is prime"
 	return True
 
 # returns x such that a*x + b*y = g
@@ -90,13 +98,14 @@ class RSA:
 		pass
 
 	# Use generate_prime	
-	def gen(self):
+	def gen(self, filename):
+		
 		# security parameter
 		self.n = 1024
 		
 		# Primes p and q
-		self.p = generate_prime(self.n)
-		self.q = generate_prime(self.n)
+		self.p = generate_prime(self.n, filename)
+		self.q = generate_prime(self.n, filename)
 		
 		# RSA modulus N = pq
 		self.rsamodulus = self.p * self.q
@@ -111,6 +120,8 @@ class RSA:
 		
 		# Secret key d
 		self.d = modinv(self.e, self.phi) + self.phi
+		
+		return filename
 	
 	def trapdoor(self, x):
 		y = pow(x, self.e, self.rsamodulus)
@@ -122,22 +133,24 @@ class RSA:
 
 ############## Problem 2 ##############
 class MerkleTree:
-	def __init__(self):
+	def __init__(self, files):
 		pass
 
 	# Number of files
-		self.n = 32
+		self.n = files
 	
-	def create_tree(self, file_list):
+	def create_tree(self, file_list, filename):
 		self.file_list = file_list												# save files
 		self.height = int(math.log(len(file_list))/math.log(2))					# number of levels in tree
 		treesize = int(pow(2,self.height+1)-1)									# number of nodes in tree, including leaves and root
+		print "Creating tree with ", treesize, "nodes"
 		self.tree = [None] * treesize
 		
 		leaf_start = int(pow(2,self.height)-1)
 		for i in range(leaf_start, leaf_start+len(file_list)):					# create leaves as nodes for all files
 			hash = hashlib.sha256(self.file_list[i-leaf_start])
 			self.tree[i] = hash.hexdigest()
+			print "Node", i, "in tree:", self.tree[i], "( hash of file", i - leaf_start, ")"
 		
 		for level in range(self.height, 0, -1):
 			for level_offset in range(pow(2,level)-1, pow(2,level+1)-1, 2):
@@ -147,16 +160,19 @@ class MerkleTree:
 				data = self.tree[level_offset] + self.tree[level_offset+1]
 				hash = hashlib.sha256(data)
 				self.tree[parent_index] = hash.hexdigest()
+				print "Node", parent_index, "in tree:", self.tree[parent_index], "( hash of nodes", level_offset, "and", level_offset+1, ")"
 		
 		hash = hashlib.sha256(self.tree[1] + self.tree[2])
 		self.tree[0] = hash.hexdigest()
 		self.root = self.tree[0]
+		return self.root
 
-	def read_file(self, i):
+	def read_file(self, i, filename):
 		pass
 		
 		file = self.file_list[i]						# file i
 		
+		print "Reading file", i, "from tree:", file
 		leaf_start = int(pow(2,self.height)-1)			# index where leaves start
 		leaf_offset = leaf_start+i						# index of leaf containing hash of file i
 		
@@ -164,7 +180,7 @@ class MerkleTree:
 			sibling_index = leaf_offset - 1
 		else:
 			sibling_index = leaf_offset + 1
-		#print "Adding index to sibling list", sibling_index
+		print "Adding node", sibling_index, "to sibling list"
 		siblings_list = [ [sibling_index,self.tree[sibling_index]] ]			# add sibling to sibling list
 		
 		for level in range(self.height, 1, -1):
@@ -175,7 +191,7 @@ class MerkleTree:
 				uncle_index = parent_index - 1
 			else:
 				uncle_index = parent_index + 1
-			#print "Adding index to sibling list", uncle_index
+			print "Adding node", uncle_index, "to sibling list"
 			siblings_list.append([uncle_index,self.tree[uncle_index]])
 			leaf_offset = parent_index
 		
@@ -183,16 +199,18 @@ class MerkleTree:
 		# Print siblings_list
 		return (file, siblings_list)
 		
-	def write_file(self, i, file):
+	def write_file(self, i, file, filename):
 		pass
 		
 		self.file_list[i] = file
-		hash = hashlib.sha256(file)
 		
+		print "Writing file", i, "to tree:", self.file_list[i]
+		
+		hash = hashlib.sha256(self.file_list[i])
 		leaf_start = int(pow(2,self.height)-1)			# index where leaves start
 		leaf_offset = leaf_start+i						# index of leaf containing hash of file i
-		#print "Setting new value for index", leaf_offset
 		self.tree[leaf_offset] = hash.hexdigest()
+		print "Updating node", leaf_offset, "to", self.tree[leaf_offset], "( hash of file", i, ")"
 		
 		for level in range(self.height, 1, -1):
 			if(leaf_offset % 2 == 0): 						# get index of sibling for leaf
@@ -204,27 +222,31 @@ class MerkleTree:
 			temp1 = pow(2, level) - 1
 			temp2 = pow(2, level+1) - 1
 			parent_index = temp1 + (leaf_offset - temp2)/2
-			#print "Setting new value for index", parent_index
 			self.tree[parent_index] = hash.hexdigest()
+			if(leaf_offset % 2 == 0):
+				print "Updating node", parent_index, "to", self.tree[parent_index], "( hash of nodes", sibling_index, "and", leaf_offset, ")"
+			else:
+				print "Updating node", parent_index, "to", self.tree[parent_index], "( hash of nodes", leaf_offset, "and", sibling_index, ")"
 			leaf_offset = parent_index
 		
 		hash = hashlib.sha256(self.tree[1] + self.tree[2])
-		#print "Setting new value for root"
 		self.tree[0] = hash.hexdigest()
+		print "Updating node 0 to", self.tree[0]
 		self.root = self.tree[0]
+		return self.root
 		
-	def check_integrity(self, i, file, siblings_list):
-		# Check that self.root matches root computed from the returned path
-		# valid = True if integrity is verified
-		
-		if(file != self.file_list[i]): return False
+	def check_integrity(self, i, file, siblings_list, root, filename):
 		
 		hash = hashlib.sha256(file)
 		for i in range(0, len(siblings_list)):
-			if(siblings_list[i][0] % 2 == 0):									# sibling is even, then it is right term
-				hash = hashlib.sha256(hash.hexdigest()+siblings_list[i][1])
-			else:																# sibling is odd, so it is left term
-				hash = hashlib.sha256(siblings_list[i][1]+hash.hexdigest())
+			if(siblings_list[i][0] % 2 == 0):									# sibling is even -> use sibling as right term
+				hash = hashlib.sha256(hash.hexdigest() + siblings_list[i][1])
+			else:																# sibling is odd -> use sibling as left term
+				hash = hashlib.sha256(siblings_list[i][1] + hash.hexdigest())
 		
-		if(hash.hexdigest() == self.root): return True
-		else: return False
+		if(hash.hexdigest() == root): 
+			print "Calculated root", hash.hexdigest(), "equals", root
+			return True
+		else: 
+			print "Calculated root", hash.hexdigest(), "does not equal", root
+			return False
