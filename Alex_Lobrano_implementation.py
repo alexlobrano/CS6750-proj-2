@@ -1,3 +1,5 @@
+# Alex_Lobrano_implementation.py
+
 import math
 import random
 import fractions
@@ -12,11 +14,11 @@ randnum = random.SystemRandom()
 def generate_prime(n, filename):
 	
 	for i in xrange(3*pow(n,2)):						# Try for 3*n^2 iterations to find a prime number
-		p = randnum.getrandbits(n-1)					# Generate N-1 random bits
+		p = randnum.getrandbits(n-1)					# Generate n-1 random bits
 		p = format(p, 'b')								# Convert to binary string
 		for i in range(n - len(p) - 1):
 			p = "0" + p									# Add missing zeroes
-		p = "1" + p										# Add 1 to front to ensure N bits
+		p = "1" + p										# Add 1 to front to ensure n bits
 		p = int(p, 2)									# Convert back to int
 		if(isPrimeMR(p, filename)): 					# Check using Miller-Rabin if p is prime
 			print p, "is prime\n"
